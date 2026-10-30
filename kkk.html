@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cricket Arena</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #061b16, #126344);
+    color: white;
+    text-align: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 500px;
+    margin: 25px auto;
+    padding: 25px;
+    background: #103b2b;
+    border: 1px solid #367c5c;
+    border-radius: 20px;
+}
+
+h1 {
+    color: #facc15;
+    font-size: 30px;
+}
+
+.subtitle {
+    color: #b8d9c8;
+}
+
+.scoreboard {
+    background: #061f17;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 25px 0;
+}
+
+.score {
+    font-size: 48px;
+    font-weight: bold;
+    color: #facc15;
+}
+
+button {
+    background: #facc15;
+    color: #10251b;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin: 7px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #ffdf55;
+    transform: scale(1.05);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#message {
+    min-height: 50px;
+    color: #facc15;
+    font-size: 20px;
+    margin: 20px 0;
+}
+
+.hidden {
+    display: none;
+}
+
+.status {
+    color: #c6e2d3;
+    line-height: 1.8;
+}
+
+footer {
+    color: #a6c5b5;
+    margin-top: 20px;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🏏 CRICKET ARENA</h1>
+    <p class="subtitle">Play Your Own Cricket Match!</p>
+
+    <div id="startScreen">
+        <h2>Welcome Player!</h2>
+        <p>Play a 2-over hand cricket match against the computer.</p>
+        <button onclick="startGame()">START MATCH</button>
+    </div>
+
+    <div id="gameScreen" class="hidden">
+
+        <div class="scoreboard">
+            <p id="innings">FIRST INNINGS</p>
+            <div class="score" id="score">0/0</div>
+            <p id="overs">Overs: 0.0</p>
+            <p id="target"></p>
+        </div>
+
+        <h3>Choose Your Runs</h3>
+
+        <div id="buttons">
+            <button onclick="playBall(0)">0</button>
+            <button onclick="playBall(1)">1</button>
+            <button onclick="playBall(2)">2</button>
+            <button onclick="playBall(3)">3</button>
+            <button onclick="playBall(4)">4</button>
+            <button onclick="playBall(6)">6</button>
+        </div>
+
+        <div id="message">Select your shot!</div>
+
+        <p class="status" id="details"></p>
+
+        <button id="restart" class="hidden"
+                onclick="location.reload()">
+            PLAY AGAIN
+        </button>
+
+    </div>
+
+    <footer>Cricket Arena | HTML CSS JavaScript</footer>
+
+</div>
+
+<script>
+
+let score = 0;
+let wickets = 0;
+let balls = 0;
+let target = 0;
+let innings = 1;
+let maxBalls = 12;
+let maxWickets = 2;
+let gameFinished = false;
+
+function startGame() {
+
+    document.getElementById("startScreen").classList.add("hidden");
+
+    document.getElementById("gameScreen").classList.remove("hidden");
+
+    updateDisplay();
+}
+
+function playBall(playerRuns) {
+
+    if (gameFinished) return;
+
+    const computerRuns = [0, 1, 2, 3, 4, 6][
+        Math.floor(Math.random() * 6)
+    ];
+
+    balls++;
+
+    if (playerRuns === computerRuns) {
+
+        wickets++;
+
+        document.getElementById("message").innerText =
+            "OUT! Computer selected " + computerRuns;
+
+    } else {
+
+        score += playerRuns;
+
+        document.getElementById("message").innerText =
+            "You scored " + playerRuns +
+            " runs! Computer selected " + computerRuns;
+    }
+
+    updateDisplay();
+
+    if (innings === 2 && score >= target) {
+        finishGame();
+        return;
+    }
+
+    if (wickets >= maxWickets || balls >= maxBalls) {
+
+        if (innings === 1) {
+
+            target = score + 1;
+
+            innings = 2;
+            score = 0;
+            wickets = 0;
+            balls = 0;
+
+            document.getElementById("message").innerText =
+                "First innings completed! Chase " + target + " runs.";
+
+            updateDisplay();
+
+        } else {
+
+            finishGame();
+        }
+    }
+}
+
+function updateDisplay() {
+
+    document.getElementById("score").innerText =
+        score + "/" + wickets;
+
+    document.getElementById("overs").innerText =
+        "Overs: " + Math.floor(balls / 6) + "." + (balls % 6);
+
+    document.getElementById("innings").innerText =
+        innings === 1 ? "FIRST INNINGS" : "SECOND INNINGS";
+
+    document.getElementById("target").innerText =
+        innings === 2 ? "Target: " + target : "";
+
+    document.getElementById("details").innerText =
+        "Balls: " + balls + "/" + maxBalls;
+}
+
+function finishGame() {
+
+    gameFinished = true;
+
+    let result;
+
+    if (score >= target) {
+
+        result = "🏆 YOU WON THE MATCH!";
+
+    } else if (score === target - 1) {
+
+        result = "🤝 MATCH TIED!";
+
+    } else {
+
+        result = "😢 COMPUTER WON THE MATCH!";
+    }
+
+    document.getElementById("message").innerText = result;
+
+    document.getElementById("buttons").classList.add("hidden");
+
+    document.getElementById("restart").classList.remove("hidden");
+
+    document.getElementById("details").innerText =
+        "Final Score: " + score + "/" + wickets;
+}
+
+</script>
+
+</body>
+</html>
