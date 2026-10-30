@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidal – Focus Timer</title>
+<style>
+:root{
+  --deep:#0a1b28; --panel:#10293a; --line:#1f3f55; --text:#e6f3f5; --dim:#8fb0bd;
+  --sea:#2aa3b5; --sea-dark:#157489; --foam:#bff0ea; --rest:#e9b872; --danger:#ef7d78;
+  --serif:Georgia,"Times New Roman",serif; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--deep);color:var(--text);font-family:var(--sans);line-height:1.5}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+
+.wrap{max-width:1040px;margin:0 auto;padding:24px 18px 40px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px}
+h1{grid-column:1/-1;margin:0;font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:.3px}
+h1 small{font-family:var(--sans);font-size:14px;font-weight:400;color:var(--dim);margin-left:10px}
+
+/* the tide */
+.tide{position:relative;border-radius:22px;overflow:hidden;background:var(--panel);border:1px solid var(--line);min-height:440px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;isolation:isolate}
+.water{position:absolute;left:0;right:0;bottom:0;height:0%;background:linear-gradient(180deg,var(--sea) 0%,var(--sea-dark) 100%);z-index:-1;transition:height 1s linear}
+.water::before{content:"";position:absolute;left:-10%;right:-10%;top:-14px;height:28px;background:var(--sea);border-radius:50%;animation:sway 5s ease-in-out infinite alternate}
+.tide.rest .water,.tide.rest .water::before{background:var(--rest)}
+.tide.rest .water{background:linear-gradient(180deg,#e9b872,#c98e45)}
+@keyframes sway{from{transform:translateX(-3%)}to{transform:translateX(3%)}}
+.mode{display:flex;gap:6px;background:rgba(5,15,22,.55);padding:4px;border-radius:30px;margin-bottom:22px}
+.mode button{border:0;background:transparent;padding:6px 16px;border-radius:24px;cursor:pointer;color:var(--dim)}
+.mode button[aria-pressed="true"]{background:var(--foam);color:#08202a;font-weight:600}
+#clock{font-family:var(--serif);font-size:clamp(64px,13vw,112px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 2px 18px rgba(0,0,0,.35)}
+#now{margin:12px 0 22px;min-height:24px;text-align:center;color:var(--text);text-shadow:0 1px 8px rgba(0,0,0,.45)}
+.ctl{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{border:1px solid rgba(255,255,255,.28);background:rgba(5,15,22,.55);padding:10px 22px;border-radius:30px;cursor:pointer}
+.btn:hover{border-color:var(--foam)}
+.btn.go{background:var(--foam);color:#08202a;border-color:var(--foam);font-weight:700;min-width:120px}
+.len{display:flex;gap:8px;align-items:center;margin-top:22px;font-size:14px;background:rgba(5,15,22,.55);padding:6px 12px;border-radius:30px}
+.len input{width:54px;background:transparent;border:0;border-bottom:1px solid var(--dim);text-align:center;padding:2px}
+
+/* side */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.card + .card{margin-top:16px}
+h2{margin:0 0 12px;font-size:16px;font-weight:600}
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0;background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.add button{border:0;background:var(--sea);color:#04202a;font-weight:700;border-radius:10px;padding:0 16px;cursor:pointer}
+ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+li{display:flex;align-items:center;gap:8px;background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+li.focus{border-color:var(--foam)}
+li.done .t{text-decoration:line-through;color:var(--dim)}
+li input[type=checkbox]{width:18px;height:18px;accent-color:var(--sea)}
+.t{flex:1;min-width:0;background:none;border:0;text-align:left;cursor:pointer;padding:4px;overflow-wrap:anywhere}
+.n{color:var(--dim);font-size:13px;white-space:nowrap}
+.x{border:0;background:none;color:var(--dim);cursor:pointer;font-size:18px;padding:0 6px}
+.x:hover{color:var(--danger)}
+.empty{color:var(--dim);font-size:14px;margin:10px 0 0}
+.hint{color:var(--dim);font-size:13px;margin:10px 0 0}
+
+.sum{display:flex;gap:18px;margin-bottom:14px}
+.sum b{display:block;font-family:var(--serif);font-size:28px}
+.sum span{color:var(--dim);font-size:13px}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:110px}
+.bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;font-size:12px;color:var(--dim)}
+.bar i{display:block;width:100%;max-width:30px;background:var(--sea);border-radius:6px 6px 2px 2px;min-height:3px}
+.bar.today i{background:var(--foam)}
+.reset{margin-top:14px;border:0;background:none;color:var(--dim);cursor:pointer;font-size:13px;text-decoration:underline;padding:0}
+
+@media (max-width:820px){.wrap{grid-template-columns:1fr}.tide{min-height:400px}}
+@media (prefers-reduced-motion:reduce){.water,.water::before{transition:none;animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tidal <small>Work while the water rises.</small></h1>
+
+  <section class="tide" id="tide" aria-label="Timer">
+    <div class="water" id="water"></div>
+    <div class="mode" role="group" aria-label="Session type">
+      <button id="mFocus" aria-pressed="true">Focus</button>
+      <button id="mBreak" aria-pressed="false">Break</button>
+    </div>
+    <div id="clock" role="timer" aria-live="off">25:00</div>
+    <div id="now">Pick a task, or just start.</div>
+    <div class="ctl">
+      <button class="btn go" id="go">Start</button>
+      <button class="btn" id="skip">Reset</button>
+    </div>
+    <div class="len">
+      <label>Focus <input type="number" id="fLen" min="1" max="180" value="25"> min</label>
+      <label>Break <input type="number" id="bLen" min="1" max="60" value="5"> min</label>
+    </div>
+  </section>
+
+  <div>
+    <section class="card">
+      <h2>Tasks</h2>
+      <div class="add">
+        <input id="taskIn" placeholder="What needs doing?" maxlength="100" aria-label="New task">
+        <button id="taskAdd">Add</button>
+      </div>
+      <ul id="tasks"></ul>
+      <p class="empty" id="tasksEmpty">No tasks yet. Add one, then tap it to work on it.</p>
+      <p class="hint">Tap a task’s name to make it the current one. Finished focus sessions count toward it.</p>
+    </section>
+    <section class="card">
+      <h2>This week</h2>
+      <div class="sum">
+        <div><b id="today">0</b><span>sessions today</span></div>
+        <div><b id="mins">0</b><span>focus minutes today</span></div>
+      </div>
+      <div class="bars" id="bars"></div>
+      <button class="reset" id="clear">Clear history</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var KEY = 'tidal:v1';
+  var S = {tasks:[], current:null, log:{}, fLen:25, bLen:5};
+  var mode = 'focus', running = false, total = 25*60, left = 25*60, endAt = 0, tick = null;
+
+  function load(){ try{ var d = JSON.parse(localStorage.getItem(KEY)); if(d){ S = Object.assign(S, d); } }catch(e){} }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+  function dayKey(d){ d = d || new Date(); return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); }
+  function fmt(s){ var m = Math.floor(s/60), r = s % 60; return (m<10?'0':'') + m + ':' + (r<10?'0':'') + r; }
+
+  /* timer */
+  function setMode(m){
+    if(running && !confirm('Stop the running timer?')) return;
+    stop(); mode = m;
+    total = left = (m === 'focus' ? S.fLen : S.bLen) * 60;
+    $('mFocus').setAttribute('aria-pressed', m === 'focus');
+    $('mBreak').setAttribute('aria-pressed', m === 'break');
+    $('tide').classList.toggle('rest', m === 'break');
+    draw();
+  }
+  function draw(){
+    $('clock').textContent = fmt(left);
+    $('water').style.height = (total ? (1 - left/total) * 100 : 0) + '%';
+    $('go').textContent = running ? 'Pause' : (left < total ? 'Resume' : 'Start');
+    document.title = running ? fmt(left) + ' · Tidal' : 'Tidal – Focus Timer';
+    var t = S.tasks.filter(function(x){ return x.id === S.current; })[0];
+    $('now').textContent = mode === 'break' ? 'Step away from the screen.' : (t ? 'Working on: ' + t.text : 'Pick a task, or just start.');
+  }
+  function start(){
+    if(running) return;
+    running = true; endAt = Date.now() + left * 1000;
+    tick = setInterval(function(){
+      left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+      draw();
+      if(left <= 0) finish();
+    }, 250);
+    draw();
+  }
+  function stop(){ running = false; clearInterval(tick); }
+  function finish(){
+    stop(); chime();
+    if(mode === 'focus'){
+      var k = dayKey(); S.log[k] = S.log[k] || {n:0, m:0};
+      S.log[k].n++; S.log[k].m += S.fLen;
+      var t = S.tasks.filter(function(x){ return x.id === S.current; })[0];
+      if(t) t.n = (t.n || 0) + 1;
+      save(); renderTasks(); renderStats();
+    }
+    var next = mode === 'focus' ? 'break' : 'focus';
+    mode = next;
+    total = left = (next === 'focus' ? S.fLen : S.bLen) * 60;
+    $('mFocus').setAttribute('aria-pressed', next === 'focus');
+    $('mBreak').setAttribute('aria-pressed', next === 'break');
+    $('tide').classList.toggle('rest', next === 'break');
+    draw();
+    $('now').textContent = next === 'break' ? 'Session done. Take a break.' : 'Break over. Ready for the next one?';
+  }
+  function chime(){
+    try{
+      var A = window.AudioContext || window.webkitAudioContext, c = new A();
+      [660, 880, 1100].forEach(function(f, i){
+        var o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = f; o.type = 'sine'; o.connect(g); g.connect(c.destination);
+        var t = c.currentTime + i * .22;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.25, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .5);
+        o.start(t); o.stop(t + .55);
+      });
+    }catch(e){}
+  }
+  $('go').addEventListener('click', function(){ running ? (stop(), draw()) : start(); });
+  $('skip').addEventListener('click', function(){ stop(); left = total; draw(); });
+  $('mFocus').addEventListener('click', function(){ if(mode !== 'focus') setMode('focus'); });
+  $('mBreak').addEventListener('click', function(){ if(mode !== 'break') setMode('break'); });
+  function lenChange(id, key){
+    $(id).addEventListener('change', function(){
+      var v = Math.max(1, Math.min(parseInt(this.max,10), parseInt(this.value,10) || S[key]));
+      this.value = v; S[key] = v; save();
+      if(!running && ((key === 'fLen') === (mode === 'focus'))){ total = left = v * 60; draw(); }
+    });
+  }
+  lenChange('fLen', 'fLen'); lenChange('bLen', 'bLen');
+
+  /* tasks */
+  function renderTasks(){
+    var ul = $('tasks'); ul.innerHTML = '';
+    S.tasks.forEach(function(t){
+      var li = document.createElement('li');
+      if(t.id === S.current) li.className = 'focus';
+      if(t.done) li.className += ' done';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!t.done; cb.setAttribute('aria-label', 'Mark done');
+      cb.addEventListener('change', function(){ t.done = cb.checked; if(t.done && S.current === t.id) S.current = null; save(); renderTasks(); draw(); });
+      var b = document.createElement('button'); b.className = 't'; b.textContent = t.text; b.title = 'Work on this';
+      b.addEventListener('click', function(){ if(t.done) return; S.current = t.id; save(); renderTasks(); draw(); });
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = t.n ? t.n + (t.n === 1 ? ' session' : ' sessions') : '';
+      var x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Delete task');
+      x.addEventListener('click', function(){ S.tasks = S.tasks.filter(function(y){ return y !== t; }); if(S.current === t.id) S.current = null; save(); renderTasks(); draw(); });
+      li.appendChild(cb); li.appendChild(b); li.appendChild(n); li.appendChild(x); ul.appendChild(li);
+    });
+    $('tasksEmpty').style.display = S.tasks.length ? 'none' : '';
+  }
+  function addTask(){
+    var v = $('taskIn').value.trim(); if(!v) return;
+    var t = {id: Date.now(), text: v, n: 0, done: false};
+    S.tasks.push(t); if(!S.current) S.current = t.id;
+    $('taskIn').value = ''; save(); renderTasks(); draw();
+  }
+  $('taskAdd').addEventListener('click', addTask);
+  $('taskIn').addEventListener('keydown', function(e){ if(e.key === 'Enter') addTask(); });
+
+  /* stats */
+  function renderStats(){
+    var t = S.log[dayKey()] || {n:0, m:0};
+    $('today').textContent = t.n; $('mins').textContent = t.m;
+    var days = [], max = 1, i, d, k;
+    for(i = 6; i >= 0; i--){ d = new Date(); d.setDate(d.getDate() - i); k = dayKey(d); days.push({d:d, n:(S.log[k] || {n:0}).n, today:i === 0}); }
+    days.forEach(function(x){ if(x.n > max) max = x.n; });
+    var box = $('bars'); box.innerHTML = '';
+    days.forEach(function(x){
+      var el = document.createElement('div'); el.className = 'bar' + (x.today ? ' today' : '');
+      el.innerHTML = '<span></span><i></i><span></span>';
+      el.children[0].textContent = x.n || '';
+      el.children[1].style.height = (x.n / max * 70) + 'px';
+      el.children[2].textContent = x.d.toLocaleDateString([], {weekday:'short'}).slice(0, 2);
+      el.setAttribute('aria-label', x.n + ' sessions');
+      box.appendChild(el);
+    });
+  }
+  $('clear').addEventListener('click', function(){ if(confirm('Clear all session history?')){ S.log = {}; save(); renderStats(); } });
+
+  load();
+  $('fLen').value = S.fLen; $('bLen').value = S.bLen;
+  total = left = S.fLen * 60;
+  renderTasks(); renderStats(); draw();
+})();
+</script>
+</body>
+</html>
